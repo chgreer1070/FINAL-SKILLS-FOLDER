@@ -201,8 +201,6 @@ PDF reader) for input/output.
 
 ---
 
-||||||| parent of 1054c4b (Add Related Projects section with cross-repo references)
-=======
 ## Related Projects
 
 - **[claude-legal-skill](https://github.com/chgreer1070/claude-legal-skill)** — Standalone contract review Agent Skill for general legal analysis (NDA, SaaS, M&A, Payment/Merchant, Finder/Broker). Uses CUAD dataset, market benchmarks, and JSON redline output. Works with Claude Code, Codex, Cursor, and 26+ tools. Use this for general-purpose contract review outside the EMS/Flex context.
