@@ -20,3 +20,6 @@ jobs:
 
       - name: Validate .skill packages
         run: python scripts/validate_skills.py
+
+      - name: Smoke-test .skill packages
+        run: python scripts/smoke_test_skills.py
