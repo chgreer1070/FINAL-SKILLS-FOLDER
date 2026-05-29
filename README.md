@@ -222,6 +222,14 @@ pip install pyyaml          # optional; falls back to a built-in parser if absen
 python scripts/validate_skills.py
 ```
 
-The same check runs in CI on every push and pull request via
+A companion smoke test extracts every package and byte-compiles the bundled scripts:
+
+```bash
+python scripts/smoke_test_skills.py
+```
+
+Both run in CI on every push and pull request via
 [`.github/workflows/validate-skills.yml`](.github/workflows/validate-skills.yml), so
-packaging regressions are caught automatically.
+packaging and script-syntax regressions are caught automatically. See
+[CONTRIBUTING.md](CONTRIBUTING.md) for the full conventions when adding or updating a
+skill.
