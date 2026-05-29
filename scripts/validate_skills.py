@@ -86,7 +86,9 @@ def validate(path: str, root: str):
 
     with zf as z:
         names = [n for n in z.namelist() if n.strip()]
-        skillmds = [n for n in names if n.endswith("SKILL.md")]
+        skillmds = [
+            n for n in names if n.split("/")[-1] == "SKILL.md" and n.count("/") == 1
+        ]
         text = (
             z.open(skillmds[0]).read().decode("utf-8", "replace") if skillmds else None
         )
