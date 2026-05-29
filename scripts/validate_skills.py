@@ -80,13 +80,18 @@ def validate(path: str, root: str):
     rel = os.path.relpath(path, root).replace(os.sep, "/")
     issues = []
     try:
-        z = zipfile.ZipFile(path)
+        zf = zipfile.ZipFile(path)
     except zipfile.BadZipFile:
         return rel, ["not a valid zip archive"]
 
-    names = [n for n in z.namelist() if n.strip()]
+    with zf as z:
+        names = [n for n in z.namelist() if n.strip()]
+        skillmds = [n for n in names if n.endswith("SKILL.md")]
+        text = (
+            z.open(skillmds[0]).read().decode("utf-8", "replace") if skillmds else None
+        )
+
     tops = sorted({n.split("/")[0] for n in names})
-    skillmds = [n for n in names if n.endswith("SKILL.md")]
     strays = [n for n in names if any(m in n for m in STRAY_MARKERS)]
 
     if "SKILL.md" in names:
@@ -104,7 +109,6 @@ def validate(path: str, root: str):
         issues.append("no SKILL.md found")
         return rel, issues
 
-    text = z.open(skillmds[0]).read().decode("utf-8", "replace")
     data, err = parse_frontmatter(text)
     if err:
         issues.append(err)
