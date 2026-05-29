@@ -177,6 +177,30 @@ detection/parsing, dashboard builder, skill signatures, Notion writeback),
 
 ---
 
+## Prerequisites & external dependencies
+
+Most skills run on Python 3 with common document/scientific libraries. A few need
+external services, credentials, or model downloads — summarized here:
+
+| Skill | External requirement |
+|---|---|
+| `fred-economic-data` | A free FRED API key in the `FRED_API_KEY` env var (from https://fredaccount.stlouisfed.org). Python: `requests`. |
+| `cowork-visualizer` | The Notion MCP tool (`notion-create-pages`) for run-summary write-back. Optional: set `KNOWLEDGE_ARTIFACTS_DATA_SOURCE_ID` to target a different Notion database (defaults to the bundled KnowledgeArtifacts DB). |
+| `timesfm-forecasting` | Downloads Google's TimesFM 2.5 model via `scripts/install.sh`. Optional Node.js MCP server under `mcp-server/`. Python: `numpy`, `pandas`, `matplotlib`. |
+| `flex-pptx-creator` | Python: `python-pptx`, `lxml`; `playwright` (with a browser installed) for the HTML→PPTX image path. |
+| `pl-intelligence-report` | Python: `openpyxl` (reads the Flex P&L `.xlsx`). |
+| `ems-contract-analyzer` | Python: `python-docx` (reads/writes DOCX contracts). |
+| `statistical-analysis` | Python: `numpy`, `pandas`, `scipy`, `matplotlib`, `seaborn`. |
+| `shap`, `statsmodels` | The corresponding library (`shap` / `statsmodels`) plus the usual model/data stack — these skills are usage guides for those libraries. |
+
+The remaining skills (`5d-engine`, `contract-intake-pipeline`,
+`contract-portfolio-organizer`, `contract-twin-3d`, `ems-insurance-coverage-analyzer`,
+`legal-pipeline-factory`, `litigation-history-analyzer`) require no external service or
+credential; they use Python 3 with common document libraries (e.g. `python-docx` and a
+PDF reader) for input/output.
+
+---
+
 ## Package conventions & validation
 
 All packages follow the Agent Skill format:
@@ -191,6 +215,13 @@ correctly-named top-level directory with a `SKILL.md`, the frontmatter `name` ma
 the directory and the `.skill` filename, descriptions are within the 1024-character
 guideline, and there are no stray build artifacts (`__pycache__`, `.pyc`, etc.).
 
-A validation script is available in the original session history; rerunning `unzip -l` on
-any package and confirming a single top-level `<name>/` directory is the quickest manual
-check.
+Run the validator locally:
+
+```bash
+pip install pyyaml          # optional; falls back to a built-in parser if absent
+python scripts/validate_skills.py
+```
+
+The same check runs in CI on every push and pull request via
+[`.github/workflows/validate-skills.yml`](.github/workflows/validate-skills.yml), so
+packaging regressions are caught automatically.
