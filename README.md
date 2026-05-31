@@ -1,6 +1,6 @@
 # FINAL-SKILLS-FOLDER
 
-A curated collection of **16 Agent Skills** (`.skill` packages) for legal/contract
+A curated collection of **18 Agent Skills** (`.skill` packages) for legal/contract
 analysis, finance, forecasting, data science, and productivity. Each `.skill` file is
 a zip archive containing a top-level skill directory with a `SKILL.md` (YAML
 frontmatter + instructions) plus any supporting `scripts/`, `references/`, and
@@ -13,7 +13,7 @@ The skills are grouped into four categories:
 | [`legal-contracts/`](#legal-contracts) | 8 | EMS / Flex contract review, risk scoring, intake, organization, litigation, and pipeline building |
 | [`finance-forecasting/`](#finance-forecasting) | 2 | P&L intelligence reporting and zero-shot time-series forecasting |
 | [`data-science/`](#data-science) | 4 | Statistics, modeling, explainability, and economic data access |
-| [`productivity/`](#productivity) | 2 | Branded PowerPoint generation and Cowork session visualization |
+| [`productivity/`](#productivity) | 4 | Branded PowerPoint generation, Cowork session visualization, visual HTML explainers, and persistent file memory |
 
 ## Using a skill
 
@@ -175,6 +175,29 @@ export) and Mode B (zipped Cowork workspace). Writes a run summary back to Notio
 detection/parsing, dashboard builder, skill signatures, Notion writeback),
 `references/` (component_specs, otel_event_schema, skill_signatures).
 
+### `visual-explainer.skill`
+Generates beautiful, self-contained HTML pages that visually explain systems, code
+changes, plans, and data — architecture diagrams, flowcharts, diff/plan reviews, project
+recaps, comparison tables, code tours, API docs, dashboards, network graphs, and slide
+decks. Renders complex tables as styled HTML instead of ASCII. Ships seven reference
+templates and an aesthetic "Slop Test" linter.
+*Contents:* `SKILL.md`, 11 `commands/` (diff-review, plan-review, data-viz, generate-slides,
+etc.), 7 `references/` (css-patterns, interactive-patterns, libraries, slide-patterns,
+theme-presets, walkthrough-patterns, responsive-nav), 7 `templates/` (architecture,
+mermaid-flowchart, data-table, timeline, dashboard, d3-graph, slide-deck), `scripts/`
+(lint.js, test.js, share.sh).
+
+### `file-memory.skill`
+Gives Claude persistent, searchable memory of the files it works with across sessions.
+Stores per-file summaries, notes, and change history under a local `.ai-memory/`
+directory; journals each session's goals, files touched, decisions, and outcomes; offers
+keyword + semantic search and generates a self-contained HTML memory dashboard.
+*Contents:* `SKILL.md`, 5 `commands/` (remember-file, recall-file, session-recap,
+search-memory, memory-dashboard), `scripts/` (memory_manager, session_journal,
+search_memory, dashboard_builder), `references/` (schema, dashboard-design),
+`assets/dashboard_template.html`. A root `CLAUDE.md` activation template enables
+auto-session tracking when dropped into a project.
+
 ---
 
 ## Prerequisites & external dependencies
@@ -192,6 +215,8 @@ external services, credentials, or model downloads — summarized here:
 | `ems-contract-analyzer` | Python: `python-docx` (reads/writes DOCX contracts). |
 | `statistical-analysis` | Python: `numpy`, `pandas`, `scipy`, `matplotlib`, `seaborn`. |
 | `shap`, `statsmodels` | The corresponding library (`shap` / `statsmodels`) plus the usual model/data stack — these skills are usage guides for those libraries. |
+| `visual-explainer` | A browser to view generated HTML. Node.js to run the bundled `scripts/lint.js` / `scripts/test.js`. Optional: the `vercel-deploy` skill for `scripts/share.sh`. Generated pages load fonts/libraries (Mermaid, Chart.js, D3, anime.js) from CDNs at view time. |
+| `file-memory` | Pure Python 3 standard library for core memory/journaling. Optional: `sentence-transformers` for semantic search — falls back to keyword search (and a TF-IDF ranker) when it is not installed. |
 
 The remaining skills (`5d-engine`, `contract-intake-pipeline`,
 `contract-portfolio-organizer`, `contract-twin-3d`, `ems-insurance-coverage-analyzer`,
