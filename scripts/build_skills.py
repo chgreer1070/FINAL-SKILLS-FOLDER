@@ -20,7 +20,6 @@ directory).
 """
 from __future__ import annotations
 
-import os
 import pathlib
 import sys
 import zipfile
@@ -39,8 +38,8 @@ def find_skill_dirs(root: pathlib.Path):
                 yield skill_dir
 
 
-def is_stray(path: pathlib.Path) -> bool:
-    return any(pat in str(path) for pat in STRAY_PATTERNS)
+def is_stray(path: pathlib.Path, base: pathlib.Path) -> bool:
+    return any(pat in str(path.relative_to(base)) for pat in STRAY_PATTERNS)
 
 
 def build_skill(skill_dir: pathlib.Path) -> pathlib.Path:
@@ -51,7 +50,7 @@ def build_skill(skill_dir: pathlib.Path) -> pathlib.Path:
         for filepath in sorted(skill_dir.rglob("*")):
             if not filepath.is_file():
                 continue
-            if is_stray(filepath):
+            if is_stray(filepath, skill_dir):
                 continue
             arcname = f"{skill_name}/{filepath.relative_to(skill_dir)}"
             zf.write(filepath, arcname)
