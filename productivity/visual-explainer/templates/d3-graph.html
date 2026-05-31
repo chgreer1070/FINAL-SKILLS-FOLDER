@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Module Dependency Graph</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    /* Nord palette — dark-first. Light override via prefers-color-scheme. */
+    :root {
+      --font-body:  'Geist', system-ui, sans-serif;
+      --font-mono:  'Geist Mono', 'SF Mono', Consolas, monospace;
+      --bg:         #2e3440;
+      --surface:    #3b4252;
+      --surface-2:  #434c5e;
+      --border:     rgba(236, 239, 244, 0.08);
+      --text:       #eceff4;
+      --text-dim:   #9099aa;
+      /* Group accent colors (Nord aurora + frost) */
+      --c-pages:      #88c0d0;
+      --c-components: #81a1c1;
+      --c-services:   #a3be8c;
+      --c-utils:      #ebcb8b;
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg:        #f8f9fb;
+        --surface:   #ffffff;
+        --surface-2: #f0f2f5;
+        --border:    rgba(46, 52, 64, 0.10);
+        --text:      #2e3440;
+        --text-dim:  #5c6880;
+      }
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 14px;
+    }
+
+    /* ── Header ──────────────────────────────────────────────── */
+    .graph-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      height: 52px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .graph-title {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+    }
+
+    .graph-name {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .graph-meta {
+      font-size: 12px;
+      font-family: var(--font-mono);
+      color: var(--text-dim);
+    }
+
+    .btn-reset {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 5px 10px;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      background: var(--surface-2);
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .btn-reset:hover {
+      color: var(--text);
+      border-color: rgba(236, 239, 244, 0.22);
+    }
+
+    /* ── Graph area ─────────────────────────────────────────────── */
+    .graph-layout {
+      position: relative;
+      height: calc(100vh - 52px);
+    }
+
+    #network-graph {
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+      cursor: grab;
+    }
+
+    #network-graph:active { cursor: grabbing; }
+
+    /* ── Legend overlay ───────────────────────────────────────────── */
+    .graph-legend {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .legend-heading {
+      font-size: 10px;
+      font-family: var(--font-mono);
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 2px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-family: var(--font-mono);
+      color: var(--text-dim);
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 2px solid;
+      flex-shrink: 0;
+    }
+
+    /* ── Hint ───────────────────────────────────────────────────── */
+    .graph-hint {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--text-dim);
+      opacity: 0.55;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<header class="graph-header">
+  <div class="graph-title">
+    <span class="graph-name">Module Dependency Graph</span>
+    <span class="graph-meta">16 nodes &middot; 18 links</span>
+  </div>
+  <button class="btn-reset" id="reset-btn" type="button">Reset view</button>
+</header>
+
+<div class="graph-layout">
+  <div id="network-graph" aria-label="Interactive force-directed module dependency graph"></div>
+
+  <div class="graph-legend" role="img" aria-label="Node group legend">
+    <div class="legend-heading">Groups</div>
+    <div class="legend-item">
+      <span class="legend-dot" style="border-color:#88c0d0;background:#88c0d028"></span>pages
+    </div>
+    <div class="legend-item">
+      <span class="legend-dot" style="border-color:#81a1c1;background:#81a1c128"></span>components
+    </div>
+    <div class="legend-item">
+      <span class="legend-dot" style="border-color:#a3be8c;background:#a3be8c28"></span>services
+    </div>
+    <div class="legend-item">
+      <span class="legend-dot" style="border-color:#ebcb8b;background:#ebcb8b28"></span>utils
+    </div>
+  </div>
+
+  <p class="graph-hint">Drag nodes &middot; Scroll to zoom &middot; Click to highlight</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  // ── Data ────────────────────────────────────────────────────────────────────
+  const nodes = [
+    { id: 'App',       group: 'pages'      },
+    { id: 'Dashboard', group: 'pages'      },
+    { id: 'Auth',      group: 'pages'      },
+    { id: 'Profile',   group: 'pages'      },
+    { id: 'Settings',  group: 'pages'      },
+    { id: 'Layout',    group: 'components' },
+    { id: 'Nav',       group: 'components' },
+    { id: 'Modal',     group: 'components' },
+    { id: 'Table',     group: 'components' },
+    { id: 'Chart',     group: 'components' },
+    { id: 'api',       group: 'services'   },
+    { id: 'authSvc',   group: 'services'   },
+    { id: 'storage',   group: 'services'   },
+    { id: 'theme',     group: 'services'   },
+    { id: 'format',    group: 'utils'      },
+    { id: 'validate',  group: 'utils'      },
+  ];
+
+  const links = [
+    { source: 'App',       target: 'Dashboard' },
+    { source: 'App',       target: 'Auth'      },
+    { source: 'Dashboard', target: 'Layout'    },
+    { source: 'Dashboard', target: 'Table'     },
+    { source: 'Dashboard', target: 'Chart'     },
+    { source: 'Dashboard', target: 'api'       },
+    { source: 'Auth',      target: 'Modal'     },
+    { source: 'Auth',      target: 'authSvc'   },
+    { source: 'Profile',   target: 'Layout'    },
+    { source: 'Profile',   target: 'api'       },
+    { source: 'Profile',   target: 'storage'   },
+    { source: 'Settings',  target: 'Layout'    },
+    { source: 'Settings',  target: 'theme'     },
+    { source: 'Layout',    target: 'Nav'       },
+    { source: 'Nav',       target: 'theme'     },
+    { source: 'Table',     target: 'format'    },
+    { source: 'Table',     target: 'validate'  },
+    { source: 'api',       target: 'authSvc'   },
+  ];
+
+  // ── Palette (matches Nord CSS vars above) ──────────────────────────────────────
+  const groupColor = {
+    pages:      '#88c0d0',
+    components: '#81a1c1',
+    services:   '#a3be8c',
+    utils:      '#ebcb8b',
+  };
+
+  const NODE_R = 22;   // circle radius (px)
+  const ARROW  = 8;    // arrowhead length (px)
+
+  // ── SVG setup ──────────────────────────────────────────────────────────
+  const container = document.getElementById('network-graph');
+  let W = container.clientWidth;
+  let H = container.clientHeight;
+
+  const svg = d3.select(container)
+    .append('svg')
+    .attr('width', W)
+    .attr('height', H);
+
+  // Arrowhead marker — tip aligns with shortened path endpoint
+  svg.append('defs')
+    .append('marker')
+    .attr('id', 'arrow')
+    .attr('viewBox', '0 -4 8 8')
+    .attr('refX', 0)
+    .attr('refY', 0)
+    .attr('markerWidth', 6)
+    .attr('markerHeight', 6)
+    .attr('orient', 'auto')
+    .append('path')
+    .attr('d', 'M0,-4L8,0L0,4')
+    .attr('fill', 'rgba(216,222,233,0.35)');
+
+  // Inner group receives the zoom transform
+  const g = svg.append('g');
+
+  // ── Zoom + pan ───────────────────────────────────────────────────────────
+  const zoom = d3.zoom()
+    .scaleExtent([0.3, 4])
+    .on('zoom', (e) => g.attr('transform', e.transform));
+
+  svg.call(zoom);
+
+  // ── Force simulation ──────────────────────────────────────────────────────────
+  const sim = d3.forceSimulation(nodes)
+    .force('link',    d3.forceLink(links).id(d => d.id).distance(120))
+    .force('charge',  d3.forceManyBody().strength(-340))
+    .force('center',  d3.forceCenter(W / 2, H / 2))
+    .force('collide', d3.forceCollide(NODE_R + 14));
+
+  // ── Links (paths so endpoint can be shortened for arrowhead) ─────────────────
+  const link = g.append('g')
+    .selectAll('path')
+    .data(links)
+    .join('path')
+    .attr('fill', 'none')
+    .attr('stroke', 'rgba(216,222,233,0.14)')
+    .attr('stroke-width', 1.5)
+    .attr('marker-end', 'url(#arrow)');
+
+  // ── Nodes ──────────────────────────────────────────────────────────────────
+  const node = g.append('g')
+    .selectAll('circle')
+    .data(nodes)
+    .join('circle')
+    .attr('r', NODE_R)
+    .attr('fill',         d => groupColor[d.group] + '28')
+    .attr('stroke',       d => groupColor[d.group])
+    .attr('stroke-width', 2)
+    .style('cursor', 'grab')
+    .on('click', handleNodeClick)
+    .call(
+      d3.drag()
+        .on('start', (e, d) => { if (!e.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+        .on('drag',  (e, d) => { d.fx = e.x; d.fy = e.y; })
+        .on('end',   (e, d) => { if (!e.active) sim.alphaTarget(0); d.fx = null; d.fy = null; })
+    );
+
+  // ── Labels ────────────────────────────────────────────────────────────────
+  const monoFont = getComputedStyle(document.documentElement)
+    .getPropertyValue('--font-mono').trim() || 'monospace';
+
+  const label = g.append('g')
+    .selectAll('text')
+    .data(nodes)
+    .join('text')
+    .text(d => d.id)
+    .attr('text-anchor', 'middle')
+    .attr('dy', '0.35em')
+    .attr('font-family', monoFont)
+    .attr('font-size', 11)
+    .attr('fill', '#d8dee9')
+    .attr('pointer-events', 'none');
+
+  // ── Tick ─────────────────────────────────────────────────────────────────
+  sim.on('tick', () => {
+    link .attr('d', linkPath);
+    node .attr('cx', d => d.x).attr('cy', d => d.y);
+    label.attr('x',  d => d.x).attr('y',  d => d.y + NODE_R + 14);
+  });
+
+  // Shorten path to end at circle edge so arrowhead doesn't overlap the node
+  function linkPath(d) {
+    const dx   = d.target.x - d.source.x;
+    const dy   = d.target.y - d.source.y;
+    const dist = Math.hypot(dx, dy) || 1;
+    const stop = NODE_R + ARROW + 2;       // stop this many px from target center
+    const ex   = d.target.x - (dx / dist) * stop;
+    const ey   = d.target.y - (dy / dist) * stop;
+    return `M${d.source.x},${d.source.y}L${ex},${ey}`;
+  }
+
+  // ── Node click: highlight direct neighbours ───────────────────────────────────
+  let selected = null;
+
+  function handleNodeClick(event, d) {
+    event.stopPropagation();
+    if (selected === d.id) {
+      selected = null;
+      resetHighlight();
+    } else {
+      selected = d.id;
+      const connected = new Set([d.id]);
+      links.forEach(l => {
+        if (l.source.id === d.id || l.target.id === d.id) {
+          connected.add(l.source.id);
+          connected.add(l.target.id);
+        }
+      });
+      node .attr('opacity', n => connected.has(n.id) ? 1 : 0.12);
+      link .attr('opacity', l => (l.source.id === d.id || l.target.id === d.id) ? 1 : 0.05);
+      label.attr('opacity', n => connected.has(n.id) ? 1 : 0.12);
+    }
+  }
+
+  // Click on background deselects
+  svg.on('click', () => { selected = null; resetHighlight(); });
+
+  function resetHighlight() {
+    node .attr('opacity', 1);
+    link .attr('opacity', 1);
+    label.attr('opacity', 1);
+  }
+
+  // ── Reset button ──────────────────────────────────────────────────────────
+  document.getElementById('reset-btn').addEventListener('click', () => {
+    selected = null;
+    resetHighlight();
+    svg.transition().duration(500).call(zoom.transform, d3.zoomIdentity);
+    sim.alpha(0.5).restart();
+  });
+
+  // ── Responsive resize ─────────────────────────────────────────────────────
+  new ResizeObserver(() => {
+    W = container.clientWidth;
+    H = container.clientHeight;
+    svg.attr('width', W).attr('height', H);
+    sim.force('center', d3.forceCenter(W / 2, H / 2)).alpha(0.3).restart();
+  }).observe(container);
+
+}());
+</script>
+
+</body>
+</html>
