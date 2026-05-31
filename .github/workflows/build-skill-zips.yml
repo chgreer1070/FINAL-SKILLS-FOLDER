@@ -2,7 +2,6 @@ name: Build and commit .skill zips
 
 on:
   push:
-    branches-ignore: [main]
     paths:
       - 'productivity/**'
       - 'data-science/**'
