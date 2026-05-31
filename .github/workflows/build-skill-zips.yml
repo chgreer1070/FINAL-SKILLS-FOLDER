@@ -1,0 +1,38 @@
+name: Build and commit .skill zips
+
+on:
+  push:
+    paths:
+      - 'productivity/**'
+      - 'data-science/**'
+      - 'finance-forecasting/**'
+      - 'legal-contracts/**'
+
+jobs:
+  build-and-commit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build .skill packages
+        run: python scripts/build_skills.py
+
+      - name: Commit rebuilt .skill zips
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add '**/*.skill'
+          if git diff --staged --quiet; then
+            echo "No .skill changes to commit."
+          else
+            git commit -m "ci: build .skill zips from source"
+            git push
+          fi
